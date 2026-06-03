@@ -1,0 +1,28 @@
+# Data files — go in dataset repo
+*.json
+*.csv
+*.pkl
+*.joblib
+*.h5
+*.pt
+
+# HPC job outputs
+*.out
+*.err
+slurm-*.out
+logs/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Temporary files
+tmp/
+scratch/
+*.chk
+*.fchk
+*.molden
