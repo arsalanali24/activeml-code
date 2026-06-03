@@ -349,29 +349,29 @@ def run_one(metal, charge, n_lig, ligand, dist, spin, geometry):
     # ── Active space selection ─────────────────────────────────────────────────
     try:
         n_active_e = get_active_electrons(mol.nelectron)
-        n_active_o = 10   # same as generated300
+        n_active_o = 10  # same as generated300
     except ValueError as e:
         log.error(str(e))
         json.dump({'name': name, 'status': 'no_orbs', 'error': str(e)},
                   open(outfile, 'w'), indent=2)
         return False
-
-    # ── CASSCF ────────────────────────────────────────────────────────────────
+    # ── CASSCF(10,10) with internal rotation — fully consistent with 3d dataset ──
     try:
-        mc, converged = run_casscf(mol, mf, n_active_e, n_active_o)
+        mc = mcscf.CASSCF(mf, n_active_o, n_active_e)
+        mc.max_memory        = 28000
+        mc.max_cycle_macro   = 300
+        mc.conv_tol          = 1e-7
+        mc.conv_tol_grad     = 1e-4
+        mc.internal_rotation = True
+        mc.kernel()
+        converged   = mc.converged
         E_CAS       = mc.e_tot
         corr_energy = E_CAS - E_HF
 
-        # Natural orbital occupations from CASSCF 1-RDM
-        # mc.mo_occ is None for ECP calcs — use make_rdm1 instead
-        dm_cas = mc.make_rdm1()
-        if dm_cas.ndim == 3:
-            # UHF reference: dm_cas is (2, nao, nao)
-            dm_total = dm_cas[0] + dm_cas[1]
-        else:
-            dm_total = dm_cas
-        noons_raw, _ = np.linalg.eigh(dm_total)
-        noons = np.sort(noons_raw)[::-1].tolist()
+        # NOONs via make_natural_orbitals — correct for UHF reference
+        from pyscf.mcscf import addons as mcaddons
+        noons_all, _ = mcaddons.make_natural_orbitals(mc)
+        noons = [float(x) for x in noons_all]
 
         # Count active orbitals: NOONs in fractional range (0.02, 1.98)
         noons_arr = np.array(noons)
@@ -384,7 +384,6 @@ def run_one(metal, charge, n_lig, ligand, dist, spin, geometry):
         json.dump({'name': name, 'status': 'failed', 'error': str(e)},
                   open(outfile, 'w'), indent=2)
         return False
-
     # Sanity check
     if corr_energy >= 0:
         log.error(f"Unphysical: corr_energy={corr_energy:.4f} >= 0")
