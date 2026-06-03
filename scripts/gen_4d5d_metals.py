@@ -42,7 +42,7 @@ os.makedirs(OUTDIR, exist_ok=True)
 # ── Basis set ─────────────────────────────────────────────────────────────────
 # def2-TZVP for all atoms (metal + ligand).
 # Larger than def2-SVP used in generated300 but necessary for 4d/5d accuracy.
-BASIS = 'def2-tzvp'
+BASIS = 'def2-svp'
 
 # ── Tabulated constants (Tier 2 features, stored directly in JSON) ────────────
 # Effective nuclear charge (Slater rules, Clementi & Raimondi 1963)
