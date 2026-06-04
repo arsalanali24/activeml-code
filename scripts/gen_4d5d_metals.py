@@ -285,7 +285,8 @@ def run_casscf(mol, mf, n_active_e, n_active_o=10):
 
 # ── Run one system ────────────────────────────────────────────────────────────
 def run_one(metal, charge, n_lig, ligand, dist, spin, geometry):
-    name    = f"{metal}_{ligand}{n_lig}_chg{charge}_spin{spin}_{geometry}"
+    dist_str = str(dist).replace(".", "p")
+    name    = f"{metal}_{ligand}{n_lig}_chg{charge}_spin{spin}_{geometry}_d{dist_str}"
     outfile = os.path.join(OUTDIR, f"{name}.json")
 
     # Skip if already done successfully
@@ -314,7 +315,8 @@ def run_one(metal, charge, n_lig, ligand, dist, spin, geometry):
         mol.charge  = charge
         mol.spin    = spin
         mol.verbose = 3
-        mol.max_memory = 14000   # MB — safe for 16GB node
+        mol.max_memory = 28000
+
         mol.build()
     except Exception as e:
         log.error(f"Mol build failed: {e}")

@@ -26,8 +26,8 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=16GB
-#SBATCH --time=04:00:00
+#SBATCH --mem=32GB
+#SBATCH --time=08:00:00
 #SBATCH --output=/pc2/users/h/hpcmual/activeml/logs/4d5d_%a_%j.out
 #SBATCH --error=/pc2/users/h/hpcmual/activeml/logs/4d5d_%a_%j.err
 
