@@ -257,8 +257,24 @@ def process_file(filepath, dry_run=False):
     n_lig  = d['n_ligands']
     charge = d['charge']
     spin   = d['spin']
-    dist   = d['dist_ang']
+    dist   = d.get('dist_ang', 2.0)  # default 2.0 if missing
     geom   = d.get('geometry', 'oct' if n_lig == 6 else 'tet')
+
+    # CSD files have irregular real coordinates — cannot rebuild geometry
+    # Add only tabulated features (z_eff, zeta_so) and skip UHF-based ones
+    if geom == 'csd_real' or 'dist_ang' not in d:
+        consts = METAL_CONSTANTS.get(metal, (None, None, '3d'))
+        z_eff, zeta_so, row = consts
+        tier2_tabulated = {
+            'z_eff'        : z_eff,
+            'zeta_so_cm1'  : zeta_so,
+            'metal_row'    : row,
+        }
+        d.update(tier2_tabulated)
+        if not dry_run:
+            json.dump(d, open(filepath, 'w'), indent=2)
+            log.info(f"  CSD file — tabulated features only: {d['name']}")
+        return True
 
     log.info(f"Processing: {d['name']}")
 
