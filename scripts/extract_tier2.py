@@ -305,7 +305,10 @@ def process_file(filepath, dry_run=False):
     # Extract features
     try:
         # Spin contamination
-        S2_val, _ = mf.spin_square()
+        try:
+            S2_val, _ = mf.spin_square()
+        except Exception:
+            S2_val = 0.0
         S = spin / 2.0
         spin_cont = float(S2_val - S * (S + 1))
 
@@ -377,8 +380,12 @@ if __name__ == '__main__':
     parser.add_argument('--file',    help='Process a single file (for testing)')
     parser.add_argument('--dry-run', action='store_true',
                         help='Show what would be added without writing')
-    parser.add_argument('--folder',  default=None,
+    parser.add_argument('--folder',       default=None,
                         help='Override data folder path')
+    parser.add_argument('--chunk-index', type=int, default=0,
+                        help='Which chunk to process (0-based)')
+    parser.add_argument('--chunk-total', type=int, default=1,
+                        help='Total number of chunks')
     args = parser.parse_args()
 
     if args.file:
@@ -390,6 +397,14 @@ if __name__ == '__main__':
         '~/activeml/data/generated300')
     files = sorted(glob.glob(os.path.join(folder, '*.json')))
     log.info(f"Found {len(files)} files in {folder}")
+    # Chunk slicing for parallel array jobs
+    if args.chunk_total > 1:
+        chunk_size = len(files) // args.chunk_total + 1
+        start = args.chunk_index * chunk_size
+        end   = min(start + chunk_size, len(files))
+        files = files[start:end]
+        log.info(f"Chunk {args.chunk_index}/{args.chunk_total}: "
+                 f"files {start}-{end} ({len(files)} files)")
 
     done, failed, skipped = 0, 0, 0
     for i, f in enumerate(files):
