@@ -128,13 +128,25 @@ def run_uhf(mol):
     return mf
 
 
-# ── Mulliken / Löwdin metal charge ────────────────────────────────────────────
+# ── Safe RDM1 helper ─────────────────────────────────────────────────────────
+def get_rdm1_alpha_beta(mf):
+    """Return (dm_alpha, dm_beta) safely for both RHF and UHF."""
+    dm = mf.make_rdm1()
+    if isinstance(dm, tuple):
+        return dm[0], dm[1]
+    if hasattr(dm, 'ndim') and dm.ndim == 3:
+        return dm[0], dm[1]
+    # Single 2D array — closed shell, alpha=beta=dm/2
+    return dm * 0.5, dm * 0.5
+
+# ── Mulliken / Löwdin metal charge ─────────────────────────────────────────────
 def get_metal_charges(mol, mf):
     """
     Returns (mulliken_charge, loewdin_charge) on the metal (atom index 0).
     Uses the total (alpha + beta) density matrix.
     """
-    dm_total = mf.make_rdm1()[0] + mf.make_rdm1()[1]
+    dm_alpha, dm_beta = get_rdm1_alpha_beta(mf)
+    dm_total = dm_alpha + dm_beta
 
     # Mulliken
     pop_mull, charges_mull = scf.uhf.mulliken_pop(mol, dm_total,
@@ -157,8 +169,7 @@ def get_alpha_beta_overlap(mol, mf):
     Value near 0 = pure spin state, near 1 = heavily polarised.
     """
     S   = mol.intor('int1e_ovlp')
-    Pa  = mf.make_rdm1()[0]
-    Pb  = mf.make_rdm1()[1]
+    Pa, Pb = get_rdm1_alpha_beta(mf)
     val = np.trace(S @ Pa @ S @ Pb)
     return float(val)
 
@@ -177,7 +188,7 @@ def get_d_orbital_occupancy(mol, mf, metal):
     Heuristic: sort the 5 d-orbital occupancies; top 2 → eg, bottom 3 → t2g
     (valid for high-spin octahedral; approximate for other geometries).
     """
-    dm_alpha, dm_beta = mf.make_rdm1()
+    dm_alpha, dm_beta = get_rdm1_alpha_beta(mf)
     dm_total = dm_alpha + dm_beta
 
     # Find AO indices for d orbitals on the metal (atom 0)
@@ -208,7 +219,7 @@ def get_mayer_bond_orders(mol, mf, n_lig):
     """
     from pyscf.lo import orth
     S  = mol.intor('int1e_ovlp')
-    Pa, Pb = mf.make_rdm1()
+    Pa, Pb = get_rdm1_alpha_beta(mf)
     Pt = Pa + Pb
 
     # Mayer BO between atoms A and B:
