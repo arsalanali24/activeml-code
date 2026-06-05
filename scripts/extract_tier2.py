@@ -148,16 +148,15 @@ def get_metal_charges(mol, mf):
     dm_alpha, dm_beta = get_rdm1_alpha_beta(mf)
     dm_total = dm_alpha + dm_beta
 
-    # Mulliken
-    pop_mull, charges_mull = scf.uhf.mulliken_pop(mol, dm_total,
-                                                    verbose=0)[:2]
-    mulliken = float(mol.atom_charges()[0] - pop_mull[0])
+    # Mulliken — use charges directly (second return value = per-atom charges)
+    _, charges_mull = scf.uhf.mulliken_pop(mol, dm_total, verbose=0)[:2]
+    mulliken = float(np.atleast_1d(charges_mull)[0])
 
-    # Löwdin (uses overlap-weighted population)
-    pop_loew, _ = scf.uhf.mulliken_pop(mol, dm_total,
-                                        s=mol.intor('int1e_ovlp'),
-                                        verbose=0)[:2]
-    loewdin = float(mol.atom_charges()[0] - pop_loew[0])
+    # Löwdin — use charges directly
+    _, charges_loew = scf.uhf.mulliken_pop(mol, dm_total,
+                                            s=mol.intor('int1e_ovlp'),
+                                            verbose=0)[:2]
+    loewdin = float(np.atleast_1d(charges_loew)[0])
 
     return mulliken, loewdin
 
@@ -344,14 +343,19 @@ def process_file(filepath, dry_run=False):
         t2g_occ, eg_occ = get_d_orbital_occupancy(mol, mf, metal)
 
         # Mayer bond orders
-        mayer_mean, mayer_std = get_mayer_bond_orders(mol, mf, n_lig)
+        try:
+            mayer_mean, mayer_std = get_mayer_bond_orders(mol, mf, n_lig)
+        except Exception:
+            mayer_mean, mayer_std = None, None
 
         # Tabulated constants
         consts = METAL_CONSTANTS.get(metal, (None, None, '3d'))
         z_eff, zeta_so, row = consts
 
     except Exception as e:
+        import traceback
         log.error(f"  Feature extraction failed: {e}")
+        log.error(traceback.format_exc())
         return False
 
     # Build Tier 2 additions
