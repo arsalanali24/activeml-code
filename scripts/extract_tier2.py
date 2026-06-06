@@ -412,6 +412,14 @@ if __name__ == '__main__':
         '~/activeml/data/generated300')
     files = sorted(glob.glob(os.path.join(folder, '*.json')))
     log.info(f"Found {len(files)} files in {folder}")
+
+    # Use stable index file if available
+    index_file = os.path.expanduser('~/activeml/scripts/tier2_missing.txt')
+    if os.path.exists(index_file):
+        all_indexed = [l.strip() for l in open(index_file) if l.strip()]
+        files = [f for f in all_indexed if os.path.exists(f)]
+        log.info(f"Using index file: {len(files)} files to process")
+    
     # Chunk slicing for parallel array jobs
     if args.chunk_total > 1:
         chunk_size = len(files) // args.chunk_total + 1
