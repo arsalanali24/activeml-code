@@ -49,6 +49,11 @@ BASIS = 'def2-svp'
 # Spin-orbit coupling constants from NIST Atomic Spectra Database (cm^-1)
 METAL_CONSTANTS = {
     # metal: (Zeff_d, zeta_SO_cm1, row)
+    # 3d early/late metals
+    'Ti': ( 8.14,  121,  '3d'),
+    'V':  ( 8.98,  208,  '3d'),
+    'Zn': (13.57, 1042,  '3d'),
+    # 4d metals
     'Pd': (13.00, 1334,  '4d'),
     'Ru': (12.33,  880,  '4d'),
     'Rh': (12.67, 1097,  '4d'),
@@ -91,6 +96,18 @@ EQ_DIST = {
     ('Pt', 'F'):  1.95,
     ('Pt', 'N'):  2.05,
     ('Pt', 'O'):  2.00,
+    # Ti bond distances (CSD averages)
+    ('Ti', 'Cl'): 2.35, ('Ti', 'Br'): 2.51, ('Ti', 'F'): 1.84,
+    ('Ti', 'N'):  2.12, ('Ti', 'O'):  1.95, ('Ti', 'S'):  2.40,
+    ('Ti', 'H'):  1.78,
+    # V bond distances (CSD averages)
+    ('V',  'Cl'): 2.28, ('V',  'Br'): 2.44, ('V',  'F'): 1.79,
+    ('V',  'N'):  2.08, ('V',  'O'):  1.90, ('V',  'S'):  2.35,
+    ('V',  'H'):  1.73,
+    # Zn bond distances (CSD averages)
+    ('Zn', 'Cl'): 2.26, ('Zn', 'Br'): 2.41, ('Zn', 'F'): 1.85,
+    ('Zn', 'N'):  2.04, ('Zn', 'O'):  1.98, ('Zn', 'S'):  2.32,
+    ('Zn', 'H'):  1.54,
 }
 
 # ── System definitions ────────────────────────────────────────────────────────
@@ -173,6 +190,52 @@ def make_systems():
             systems.append(('Pt', -2, 4, ligand, d, [0, 2], 'sq_pl'))
             # Pt(IV) d6 octahedral
             systems.append(('Pt', -2, 6, ligand, d, [0, 2, 4], 'oct'))
+
+    # ── Titanium (3d, Ti(II)=d2, Ti(III)=d1, Ti(IV)=d0) ─────────────────────────
+    for ligand in ['Cl', 'Br', 'F', 'N', 'O', 'S', 'H']:
+        if ('Ti', ligand) not in EQ_DIST:
+            continue
+        eq = EQ_DIST[('Ti', ligand)]
+        for frac in [0.95, 1.00, 1.05]:
+            d = round(eq * frac, 3)
+            # Ti(II) d2, octahedral
+            systems.append(('Ti', -2, 6, ligand, d, [2, 0], 'oct'))
+            # Ti(III) d1, octahedral
+            systems.append(('Ti', -3, 6, ligand, d, [1], 'oct'))
+            # Ti(IV) d0, octahedral (closed shell)
+            systems.append(('Ti', -4, 6, ligand, d, [0], 'oct'))
+            # Ti(II) tetrahedral
+            systems.append(('Ti', -2, 4, ligand, d, [2, 0], 'tet'))
+
+    # ── Vanadium (3d, V(II)=d3, V(III)=d2, V(IV)=d1, V(V)=d0) ──────────────
+    for ligand in ['Cl', 'Br', 'F', 'N', 'O', 'S', 'H']:
+        if ('V', ligand) not in EQ_DIST:
+            continue
+        eq = EQ_DIST[('V', ligand)]
+        for frac in [0.95, 1.00, 1.05]:
+            d = round(eq * frac, 3)
+            # V(II) d3, octahedral
+            systems.append(('V', -2, 6, ligand, d, [3, 1], 'oct'))
+            # V(III) d2, octahedral
+            systems.append(('V', -3, 6, ligand, d, [2, 0], 'oct'))
+            # V(IV) d1, octahedral
+            systems.append(('V', -4, 6, ligand, d, [1], 'oct'))
+            # V(II) tetrahedral
+            systems.append(('V', -2, 4, ligand, d, [3, 1], 'tet'))
+
+    # ── Zinc (3d10, Zn(II)=d10) ───────────────────────────────────────────────
+    # Zn is d10 — always closed shell, n_active should be 0
+    # Important as a reference/control point in the dataset
+    for ligand in ['Cl', 'Br', 'F', 'N', 'O', 'S', 'H']:
+        if ('Zn', ligand) not in EQ_DIST:
+            continue
+        eq = EQ_DIST[('Zn', ligand)]
+        for frac in [0.95, 1.00, 1.05]:
+            d = round(eq * frac, 3)
+            # Zn(II) d10, tetrahedral (most common)
+            systems.append(('Zn', -2, 4, ligand, d, [0], 'tet'))
+            # Zn(II) d10, octahedral
+            systems.append(('Zn', -2, 6, ligand, d, [0], 'oct'))
 
     return systems
 
