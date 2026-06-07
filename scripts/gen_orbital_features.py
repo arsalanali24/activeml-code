@@ -190,7 +190,7 @@ def process(src_filepath):
         # Reduce window for high spin to avoid FCI memory explosion
         # CAS(n,14) spin=4 needs 3M+ CI elements — too large
         # Use smaller window for high spin: 10 orbitals max
-        n_window = 10  # match CASSCF(10,10) — avoids FCI memory explosion
+        n_window = N_WINDOW  # 14 orbitals — matches paper
         # 14-orbital window: 7 occ + 7 virt centered on HOMO
         half = n_window // 2
         start = max(0, homo_idx - half + 1)
@@ -207,25 +207,17 @@ def process(src_filepath):
             n_cas_e = 2
 
         # Pass nelecas as tuple (nalpha,nbeta) to avoid FCI shape mismatch
-        n_alpha_cas = (n_cas_e + d['spin']) // 2
-        n_beta_cas  = (n_cas_e - d['spin']) // 2
-        if n_beta_cas < 0: n_beta_cas = 0
-        mc = mcscf.CASCI(mf, n_window,
-                         (n_alpha_cas, n_beta_cas))
-        mc.max_memory = 28000
-        mc.fcisolver.max_memory = 28000
-        mc.fcisolver.max_cycle = 100
-        # Force pyscf to use more memory in FCI C extension
-        mc.fcisolver.max_memory = 28000
-        mc.fcisolver.max_cycle  = 100
-        mo_sorted = mc.sort_mo(window, base=0)
+        # Exactly as in casci_orbital_entropy.py — do not modify
+        mo_avg    = (mf.mo_coeff[0] + mf.mo_coeff[1]) / 2
+        mc        = mcscf.CASCI(mf, n_window, n_cas_e)
+        mc.verbose = 0
+        mo_sorted = mc.sort_mo(window, mo_coeff=mo_avg, base=0)
         mc.kernel(mo_sorted)
 
         E_CASCI = float(mc.e_tot)
 
         # Natural orbital occupations in active space
-        casdm1 = mc.fcisolver.make_rdm1(
-            mc.ci, n_window, (n_alpha_cas, n_beta_cas))
+        casdm1 = mc.fcisolver.make_rdm1(mc.ci, mc.ncas, mc.nelecas)
         noons, _ = np.linalg.eigh(casdm1)
         noons = np.sort(noons)[::-1]  # descending
 
